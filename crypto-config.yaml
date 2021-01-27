@@ -1,0 +1,45 @@
+
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+
+OrdererOrgs:
+  - Name: orderer
+    Domain: uni.com
+    Specs:
+      - Hostname: orderer
+        SANS:
+            - "localhost"
+
+PeerOrgs:
+  - Name: student
+    Domain: student.uni.com
+    EnableNodeOUs: true
+    Template:
+      Count: 1
+      SANS:
+        - "localhost"
+    Users:
+      Count: 1
+
+  - Name: college
+    Domain: college.uni.com
+    EnableNodeOUs: true
+    Template:
+      Count: 1
+      SANS:
+        - "localhost"
+    Users:
+      Count: 1
+
+  - Name: university
+    Domain: university.uni.com
+    EnableNodeOUs: true
+    Template:
+      Count: 1
+      SANS:
+        - "localhost"
+    Users:
+      Count: 1
+
+

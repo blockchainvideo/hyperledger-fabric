@@ -1,0 +1,148 @@
+1) Generate Certificates 
+	./cryptogen generate --config=./crypto-config.yaml
+
+2) Compose YAML files, ConfigTx
+	mkdir channel-artifacts
+
+
+configtxgen
+GENERATE GENESIS BLOCKS
+./configtxgen -profile uniGenesis -outputBlock ./channel-artifacts/genesisone.block 
+
+
+GENERATE CHANNEL TRANSACTION
+./configtxgen -profile onechannel -outputCreateChannelTx ./channel-artifacts/onechannel.tx -channelID onechannel
+
+./configtxgen -profile twochannel -outputCreateChannelTx ./channel-artifacts/twochannel.tx -channelID twochannel
+
+
+GENERATE ANCHOR PEERS FOR BOTH CHANNELS
+
+OneChannel Anchor Peers - 
+
+./configtxgen -profile onechannel -outputAnchorPeersUpdate ./channel-artifacts/studentanchor.tx -channelID onechannel -asOrg student
+
+./configtxgen -profile onechannel -outputAnchorPeersUpdate ./channel-artifacts/collegeanchor1.tx -channelID onechannel -asOrg college
+
+TwoChannel Anchor Peers - 
+
+./configtxgen -profile twochannel -outputAnchorPeersUpdate ./channel-artifacts/collegeanchor2.tx -channelID twochannel -asOrg college
+
+./configtxgen -profile twochannel -outputAnchorPeersUpdate ./channel-artifacts/universityanchor.tx -channelID twochannel -asOrg university
+
+
+3) Start Docker:-
+	docker-compose -f docker-compose.yaml up
+
+	sudo chmod -R 777 /var/run/docker.sock
+
+
+4) Access docker container of organization:- 
+STUDENT ORG
+docker exec -e "CORE_PEER_LOCALMSPID=student" -e "CORE_PEER_MSPCONFIGPATH=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/peerOrganizations/student.uni.com/users/Admin@student.uni.com/msp" -e "CORE_PEER_ADDRESS=student:7051" -it cli bash
+
+
+COLLEGE ORG
+docker exec -e "CORE_PEER_LOCALMSPID=college" -e "CORE_PEER_MSPCONFIGPATH=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/peerOrganizations/college.uni.com/users/Admin@college.uni.com/msp" -e "CORE_PEER_ADDRESS=college:7051" -it cli bash
+
+
+UNIVERSITY ORG
+docker exec -e "CORE_PEER_LOCALMSPID=university" -e "CORE_PEER_MSPCONFIGPATH=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/peerOrganizations/university.uni.com/users/Admin@university.uni.com/msp" -e "CORE_PEER_ADDRESS=university:7051" -it cli bash
+
+
+Export Orderer Certificate:-
+export ORDERER_CA=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/ordererOrganizations/uni.com/orderers/orderer.uni.com/msp/tlscacerts/tlsca.uni.com-cert.pem
+
+5) Create Channel Block
+peer channel create -o orderer:7050 -c onechannel -f /opt/gopath/src/github.com/hyperledger/fabric/peer/channel-artifacts/onechannel.tx --cafile $ORDERER_CA
+
+peer channel create -o orderer:7050 -c twochannel -f /opt/gopath/src/github.com/hyperledger/fabric/peer/channel-artifacts/twochannel.tx --cafile $ORDERER_CA
+
+6) Join organisation to channel using Block:- 
+
+from student and college orgs terminal
+peer channel join -b onechannel.block --cafile $ORDERER_CA
+
+from university and college orgs terminal
+peer channel join -b twochannel.block --cafile $ORDERER_CA
+
+7) Update anchor peers:-
+from student org
+	peer channel update -o orderer:7050 -c onechannel -f /opt/gopath/src/github.com/hyperledger/fabric/peer/channel-artifacts/studentanchor.tx --cafile $ORDERER_CA
+
+
+from college org 
+peer channel update -o orderer:7050 -c onechannel -f /opt/gopath/src/github.com/hyperledger/fabric/peer/channel-artifacts/collegeanchor1.tx --cafile $ORDERER_CA
+peer channel update -o orderer:7050 -c twochannel -f /opt/gopath/src/github.com/hyperledger/fabric/peer/channel-artifacts/collegeanchor2.tx --cafile $ORDERER_CA
+
+from university org
+peer channel update -o orderer:7050 -c twochannel -f /opt/gopath/src/github.com/hyperledger/fabric/peer/channel-artifacts/universityanchor.tx --cafile $ORDERER_CA
+
+
+peer channel list
+
+INSTALL CHAINCODE ON RESPECTIVE NODES
+
+
+chaincode 1 
+install on college and student peers
+
+- peer chaincode install -n exam -p github.com/chaincode/exam -v 1.0.0
+
+instantiate on either of the peers
+
+- peer chaincode instantiate -o orderer:7050 --cafile $ORDERER_CA -C onechannel -c '{"Args":[]}'  -n exam -v 1.0.0 -P "OR('student.peer','college.peer')"
+
+
+invoke and query chaincode 
+- peer chaincode invoke -o orderer:7050 -C onechannel -n exam -c '{"function":"initPart","Args":["1","oop","alice","bangalore"]}'
+- peer chaincode invoke -o orderer:7050 -C onechannel -n exam -c '{"function":"initPart","Args":["2","sem2","student2","mumbai"]}'
+- peer chaincode invoke -o orderer:7050 -C onechannel -n exam -c '{"function":"initPart","Args":["3","sem2","student3","delhi"]}'
+peer chaincode invoke -o orderer:7050 -C onechannel -n exam -c '{"function":"initPart","Args":["6","cn","bob","karnataka"]}'
+- peer chaincode invoke -o orderer:7050 -C onechannel -n exam -c '{"function":"readPart","Args":["1"]}'
+- peer chaincode query -o orderer:7050 -C onechannel -n exam -c '{"function":"readPart","Args":["1"]}'
+- peer chaincode invoke -o orderer:7050 -C onechannel -n exam -c '{"function":"queryAllParts","Args":[]}'
+- peer chaincode invoke -o orderer:7050 -C onechannel -n exam -c '{"function":"deletePart","Args":["2"]}'
+
+upgrade chaincode(  to upgrade- 1) Install on all peers 2) upgrade on channel with any 1 peer  )
+
+- peer chaincode install -n exam -p github.com/chaincode/exam -v 1.0.1 (updated version)
+- peer chaincode upgrade -o orderer:7050 --cafile $ORDERER_CA -C onechannel -c '{"Args":[]}'  -n exam -v 1.0.1 -P "OR('student.peer','college.peer')"
+
+
+
+
+chaincode 2
+install on college and university peers
+- peer chaincode install -n grades -p github.com/chaincode/grades -v 1.0.0
+instantiate on either of the peers
+- peer chaincode instantiate -o orderer:7050 --cafile $ORDERER_CA -C twochannel -c '{"Args":[]}'  -n grades -v 1.0.0 -P "OR('college.peer','university.peer')"
+
+invoke and query chaincode 
+
+
+- peer chaincode invoke -o orderer:7050 -C twochannel -n grades -c '{"function":"initPart","Args":["5","sem1","student5","A"]}'
+- peer chaincode invoke -o orderer:7050 -C twochannel -n grades -c '{"function":"initPart","Args":["2","sem2","student2","A+"]}'
+- peer chaincode invoke -o orderer:7050 -C twochannel -n grades -c '{"function":"readPart","Args":["1"]}'
+- peer chaincode query -o orderer:7050 -C twochannel -n grades -c '{"function":"readPart","Args":["1"]}'
+- peer chaincode invoke -o orderer:7050 -C twochannel -n grades -c '{"function":"queryAllParts","Args":[]}'
+- peer chaincode invoke -o orderer:7050 -C twochannel -n grades -c '{"function":"deletePart","Args":["1"]}'
+
+upgrade chaincode(  to upgrade- 1) Install on all peers 2) upgrade on channel with any 1 peer  )
+
+- peer chaincode install -n grades -p github.com/chaincode/grades -v 1.0.1 (updated version)
+- peer chaincode upgrade -o orderer:7050 --cafile $ORDERER_CA -C twochannel -c '{"Args":[]}'  -n grades -v 1.0.1 -P "OR('college.peer','university.peer')"
+
+
+
+
+
+
+
+
+
+
+docker-compose down --volumes
+
+
+

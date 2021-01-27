@@ -1,0 +1,83 @@
+{
+    "name": "rec_default",
+    "version": "1.0.0",
+    "client": {
+        "organization": "university",
+        "connection": {
+            "timeout": {
+                "peer": {
+                    "endorser": "300"
+                },
+                "orderer": "300"
+            }
+        }
+    },
+    "channels": {
+        "twochannel": {
+            "orderers": [
+                "orderer"
+            ],
+            "peers": {
+                "university": {},
+		        "college": {}
+            }
+        }
+    },
+    "organizations": {
+        "university": {
+            "mspid": "university",
+            "peers": [
+                "university"
+            ],
+            "certificateAuthorities": [
+                "ca.university"
+            ],
+            "orderers": [
+                "orderer"
+            ]
+        }
+    },
+    "orderers": {
+        "orderer": {
+            "url": "grpc://localhost:7050",
+            "tlsCACerts": {
+                "path": "../crypto-config/ordererOrganizations/uni.com/tlsca/tlsca.uni.com-cert.pem"
+            }
+    
+        }
+    },
+    "peers": {
+        "university": {
+            "url": "grpc://localhost:9051",
+            "tlsCACerts": {
+                "path": "../crypto-config/peerOrganizations/university.uni.com/tlsca/tlsca.university.uni.com-cert.pem"
+            },
+            "grpcOptions": {
+                "ssl-target-name-override": "university"
+            }
+
+        },
+        "college": {
+            "url": "grpc://localhost:8051",
+            "tlsCACerts": {
+                "path": "../crypto-config/peerOrganizations/college.uni.com/tlsca/tlsca.college.uni.com-cert.pem"
+            },
+            "grpcOptions": {
+                "ssl-target-name-override": "college"
+            }
+
+        }
+    },
+    "certificateAuthorities": { 
+        "ca.university": {
+            "url": "https://localhost:9054",
+            "caName": "ca-university",
+	"tlsCACerts": {
+                "path": "../crypto-config/peerOrganizations/university.uni.com/tlsca/tlsca.university.uni.com-cert.pem"
+            },
+            "httpOptions": {
+                "verify": false
+            }
+        }
+    }
+}

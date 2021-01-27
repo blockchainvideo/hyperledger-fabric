@@ -1,0 +1,102 @@
+{
+    "name": "rec_default",
+    "version": "1.0.0",
+    "client": {
+        "organization": "college",
+        "connection": {
+            "timeout": {
+                "peer": {
+                    "endorser": "300"
+                },
+                "orderer": "300"
+            }
+        }
+    },
+    "channels": {
+        "onechannel": {
+            "orderers": [
+                "orderer"
+            ],
+            "peers": {
+                "student": {},
+		        "college": {}
+            }
+        },
+        "twochannel": {
+            "orderers": [
+                "orderer"
+            ],
+            "peers": {
+                "college": {},
+		        "university": {}
+            }
+        }
+    },
+    "organizations": {
+        "college": {
+            "mspid": "college",
+            "peers": [
+                "college"
+            ],
+            "certificateAuthorities": [
+                "ca.college"
+            ],
+            "orderers": [
+                "orderer"
+            ]
+        }
+    },
+    "orderers": {
+        "orderer": {
+            "url": "grpc://localhost:7050",
+            "tlsCACerts": {
+                "path": "../crypto-config/ordererOrganizations/uni.com/tlsca/tlsca.uni.com-cert.pem"
+            }
+    
+        }
+    },
+    "peers": {
+        "college": {
+            "url": "grpc://localhost:8051",
+            "tlsCACerts": {
+                "path": "../crypto-config/peerOrganizations/college.uni.com/tlsca/tlsca.college.uni.com-cert.pem"
+            },
+            "grpcOptions": {
+                "ssl-target-name-override": "college"
+            }
+
+        },
+        "student": {
+            "url": "grpc://localhost:7051",
+            "tlsCACerts": {
+                "path": "../crypto-config/peerOrganizations/student.uni.com/tlsca/tlsca.student.uni.com-cert.pem"
+            },
+            "grpcOptions": {
+                "ssl-target-name-override": "student"
+            }
+
+        },
+        "university": {
+            "url": "grpc://localhost:9051",
+            "tlsCACerts": {
+                "path": "../crypto-config/peerOrganizations/university.uni.com/tlsca/tlsca.university.uni.com-cert.pem"
+            },
+            "grpcOptions": {
+                "ssl-target-name-override": "university"
+            }
+
+        }
+    } ,
+    "certificateAuthorities": { 
+        "ca.college": {
+            "url": "https://localhost:8054",
+            "caName": "ca-college",
+	"tlsCACerts": {
+                "path": "../crypto-config/peerOrganizations/college.uni.com/tlsca/tlsca.college.uni.com-cert.pem"
+            },
+            "httpOptions": {
+                "verify": false
+            }
+        }
+    }
+}

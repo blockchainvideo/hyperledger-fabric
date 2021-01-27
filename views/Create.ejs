@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+body {
+  font-family: Arial, Helvetica, sans-serif;
+  background-color: black;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* Add padding to containers */
+.container {
+  padding: 16px;
+  background-color: white;
+}
+
+
+/* Full-width input fields */
+input[type=number], input[type=text] {
+  width: 100%;
+  padding: 15px;
+  margin: 5px 0 22px 0;
+  display: inline-block;
+  border: none;
+  background: #f1f1f1;
+}
+
+input[type=text]:focus, input[type=password]:focus {
+  background-color: #ddd;
+  outline: none;
+}
+/* Overwrite default styles of hr */
+
+hr {
+  border: 1px solid #f1f1f1;
+  margin-bottom: 25px;
+}
+
+/* Set a style for the submit button */
+.registerbtn {
+  background-color: #000000;
+  color: white;
+  padding: 16px 20px;
+  margin: 8px 0;
+  border: none;
+  cursor: pointer;
+  width: 100%;
+  opacity: 0.9;
+}
+
+.registerbtn:hover {
+  opacity: 1;
+}
+
+/* Add a blue text color to links */
+a {
+  color: dodgerblue;
+}
+
+
+label {
+    display: block;
+    font: 1rem 'Fira Sans', sans-serif;
+    }
+
+      input,
+    label {
+        margin: .4rem 0;
+        }
+
+/* Set a grey background color and center the text of the "sign in" section */
+.signin {
+  background-color: #f1f1f1;
+  text-align: center;
+}
+
+
+</style>
+
+
+
+</head>
+<body>
+
+<form action="http://localhost:8000/addpart/" method="post">
+  <div class="container">
+      <h1><center>Create Part</h1>
+       <p> </p>
+    <hr>
+
+    <label for="Quantity"><b style="margin-top: 1505px;font-size: 22px;"> </b></label> 
+
+    <label for="Quantity"><b style="margin-top: 1505px;">Part ID</b></label>
+    <input type="text" placeholder="Enter Part ID" name="part" id="part" required>
+
+    <label for="batch"><b style="margin-top: 1505px;">Part Batch</b></label>
+    <input type="text" placeholder="Enter Batch No." name="partName" id="partName" required>
+
+    
+    <label for="datee"><b style="margin-top: 1505px;">Inbound Date (ddmmyyyy)</b></label>
+    <input type="number" placeholder="Enter Date in format ddmmyyyy" name="inboundDate" id="inboundDate" required>
+
+    
+    <label for="date"><b style="margin-top: 1505px;">Outbound Date (ddmmyyyy)</b></label>
+    <input type="number" placeholder="Enter Date in format ddmmyyyy" name="outboundDate" id="outboundDate" required>
+
+    <label for="Place"><b><%= owner %></b></label>
+    <input type="text" placeholder="Enter name" name="owner" id="owner" required>
+
+    <label for="Place"><b>Owner password</b></label>
+    <input type="password" placeholder="Enter Owner Password" name="password" required>
+
+    <label for="Place"><b>Location</b></label>
+    <input type="text" placeholder="Enter Location" name="location" id="location" required> 
+
+    <label for="Storage status"><b>Storage Status</b></label>
+    <select name="status" id="status" >
+        <option value="true">true</option> 
+        <option value="false">false</option>
+    </select>
+ <label for="datee"><b style="margin-top: 1505px;">Storage Date (ddmmyyyy)</b></label>
+    <input type="number" placeholder="Enter Date in format ddmmyyyy. Storage Date=0 if storage status is false" name="storageDate" id="storageDate" required>
+ 
+
+    <button type="submit" class="registerbtn">Create</button>
+  </div>
+</form>
+
+</body>
+</html>

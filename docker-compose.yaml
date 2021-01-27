@@ -1,0 +1,176 @@
+
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+
+version: '2'
+
+volumes:
+  orderer.uni.com:
+  peer0.student.uni.com:
+  peer0.college.uni.com:
+  peer0.university.uni.com:
+
+services:
+  peer-base:
+    image: hyperledger/fabric-peer:$IMAGE_TAG
+    environment:
+      - CORE_VM_ENDPOINT=unix:///host/var/run/docker.sock
+      - FABRIC_LOGGING_SPEC=INFO
+      - CORE_PEER_TLS_ENABLED=false
+      - CORE_PEER_GOSSIP_USELEADERELECTION=true
+      - CORE_PEER_GOSSIP_ORGLEADER=false
+      - CORE_PEER_PROFILE_ENABLED=true
+      - CORE_PEER_ADDRESSAUTODETECT=true
+    working_dir: /opt/gopath/src/github.com/hyperledger/fabric/peer
+    command: peer node start
+    volumes:
+    - /var/run/:/host/var/run/
+
+  orderer:
+    container_name: orderer
+    image: hyperledger/fabric-orderer:$IMAGE_TAG
+    environment:
+      - FABRIC_LOGGING_SPEC=INFO
+      - ORDERER_GENERAL_LISTENADDRESS=0.0.0.0
+      - ORDERER_GENERAL_GENESISMETHOD=file
+      - ORDERER_GENERAL_GENESISFILE=/var/hyperledger/orderer/orderer.genesis.block
+      - ORDERER_GENERAL_LOCALMSPID=orderer
+      - ORDERER_GENERAL_LOCALMSPDIR=/var/hyperledger/orderer/msp
+      - ORDERER_GENERAL_TLS_ENABLED=false
+    working_dir: /opt/gopath/src/github.com/hyperledger/fabric
+    command: orderer
+    volumes:
+    - ./channel-artifacts/genesisone.block:/var/hyperledger/orderer/orderer.genesis.block
+    - ./crypto-config/ordererOrganizations/uni.com/orderers/orderer.uni.com/msp:/var/hyperledger/orderer/msp
+    - orderer.uni.com:/var/hyperledger/production/orderer
+    ports:
+      - 7050:7050
+
+
+  student:
+    container_name: student
+    extends:
+      service: peer-base
+    environment:
+      - CORE_PEER_ID=student.peer0
+      - CORE_PEER_ADDRESS=student:7051
+      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=student:7051
+      - CORE_PEER_LOCALMSPID=student
+      - CORE_CHAINCODE_LOGGING_SHIM=INFO
+    volumes:
+        - ./crypto-config/peerOrganizations/student.uni.com/peers/peer0.student.uni.com/msp:/etc/hyperledger/fabric/msp
+        - peer0.student.uni.com:/var/hyperledger/production
+        - ./../chaincode/:/opt/gopath/src/github.com/chaincode
+    ports:
+      - 7051:7051
+      - 7053:7053
+
+  college:
+    container_name: college
+    extends:
+      service: peer-base
+    environment:
+      - CORE_PEER_ID=college.peer0
+      - CORE_PEER_ADDRESS=college:7051
+      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=college:7051
+      - CORE_PEER_LOCALMSPID=college
+    volumes:
+        - ./crypto-config/peerOrganizations/college.uni.com/peers/peer0.college.uni.com/msp:/etc/hyperledger/fabric/msp
+        - peer0.college.uni.com:/var/hyperledger/production
+        - ./../chaincode/:/opt/gopath/src/github.com/chaincode
+    ports:
+      - 8051:7051
+      - 8053:7053
+
+  university:
+    container_name: university
+    extends:
+      service: peer-base
+    environment:
+      - CORE_PEER_ID=university.peer0
+      - CORE_PEER_ADDRESS=university:7051
+      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=university:7051
+      - CORE_PEER_LOCALMSPID=university
+    volumes:
+        - ./crypto-config/peerOrganizations/university.uni.com/peers/peer0.university.uni.com/msp:/etc/hyperledger/fabric/msp
+        - peer0.university.uni.com:/var/hyperledger/production
+        - ./../chaincode/:/opt/gopath/src/github.com/chaincode
+    ports:
+      - 9051:7051
+      - 9053:7053
+
+
+  cli:
+    container_name: cli
+    image: hyperledger/fabric-tools:1.4.7
+    tty: true
+    stdin_open: true
+    environment:
+      - GOPATH=/opt/gopath
+      - CORE_VM_ENDPOINT=unix:///host/var/run/docker.sock
+      - FABRIC_LOGGING_SPEC=INFO
+      - CORE_PEER_ID=cli
+      - CORE_PEER_ADDRESS=student:7051
+      - CORE_PEER_LOCALMSPID=student
+      - CORE_PEER_TLS_ENABLED=false
+      - CORE_PEER_MSPCONFIGPATH=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/peerOrganizations/student.uni.com/users/Admin@student.uni.com/msp
+    working_dir: /opt/gopath/src/github.com/hyperledger/fabric/peer
+    command: /bin/bash
+    volumes:
+        - /var/run/:/host/var/run/
+        - ./crypto-config:/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/
+        - ./scripts:/opt/gopath/src/github.com/hyperledger/fabric/peer/scripts/
+        - ./channel-artifacts:/opt/gopath/src/github.com/hyperledger/fabric/peer/channel-artifacts
+        - ./../chaincode/:/opt/gopath/src/github.com/chaincode
+    depends_on:
+      - orderer
+      - student
+      - college
+      - university
+
+  ca.student:
+    image: hyperledger/fabric-ca:$IMAGE_TAG
+    environment:
+      - FABRIC_CA_HOME=/etc/hyperledger/fabric-ca-server
+      - FABRIC_CA_SERVER_CA_NAME=ca-student
+      - FABRIC_CA_SERVER_TLS_ENABLED=true
+      - FABRIC_CA_SERVER_TLS_CERTFILE=/etc/hyperledger/fabric-ca-server-config/ca.student.uni.com-cert.pem
+      - FABRIC_CA_SERVER_TLS_KEYFILE=/etc/hyperledger/fabric-ca-server-config/d49048f6b241b38f2c5610af8ac4203d5592ba56c210faac316fefa2fe291351_sk
+    ports:
+      - "7054:7054"
+    command: sh -c 'fabric-ca-server start --ca.certfile /etc/hyperledger/fabric-ca-server-config/ca.student.uni.com-cert.pem --ca.keyfile /etc/hyperledger/fabric-ca-server-config/d49048f6b241b38f2c5610af8ac4203d5592ba56c210faac316fefa2fe291351_sk -b admin:adminpw -d'
+    volumes:
+      - ./crypto-config/peerOrganizations/student.uni.com/ca/:/etc/hyperledger/fabric-ca-server-config
+    container_name: ca.student
+
+  ca.college:
+    image: hyperledger/fabric-ca:$IMAGE_TAG
+    environment:
+      - FABRIC_CA_HOME=/etc/hyperledger/fabric-ca-server
+      - FABRIC_CA_SERVER_CA_NAME=ca-college
+      - FABRIC_CA_SERVER_TLS_ENABLED=true
+      - FABRIC_CA_SERVER_TLS_CERTFILE=/etc/hyperledger/fabric-ca-server-config/ca.college.uni.com-cert.pem
+      - FABRIC_CA_SERVER_TLS_KEYFILE=/etc/hyperledger/fabric-ca-server-config/a582df7b6b4a13360cd1d532075104d1849e10d848c370a3537a168edae7386f_sk
+    ports:
+      - "8054:7054"
+    command: sh -c 'fabric-ca-server start --ca.certfile /etc/hyperledger/fabric-ca-server-config/ca.college.uni.com-cert.pem --ca.keyfile /etc/hyperledger/fabric-ca-server-config/a582df7b6b4a13360cd1d532075104d1849e10d848c370a3537a168edae7386f_sk -b admin:adminpw -d'
+    volumes:
+      - ./crypto-config/peerOrganizations/college.uni.com/ca/:/etc/hyperledger/fabric-ca-server-config
+    container_name: ca.college
+
+  ca.university:
+    image: hyperledger/fabric-ca:$IMAGE_TAG
+    environment:
+      - FABRIC_CA_HOME=/etc/hyperledger/fabric-ca-server
+      - FABRIC_CA_SERVER_CA_NAME=ca-university
+      - FABRIC_CA_SERVER_TLS_ENABLED=true
+      - FABRIC_CA_SERVER_TLS_CERTFILE=/etc/hyperledger/fabric-ca-server-config/ca.university.uni.com-cert.pem
+      - FABRIC_CA_SERVER_TLS_KEYFILE=/etc/hyperledger/fabric-ca-server-config/37718c2c7c7b909c198212140a4810f8a552cd5cb5933c5430af46e2547a4c23_sk
+    ports:
+      - "9054:7054"
+    command: sh -c 'fabric-ca-server start --ca.certfile /etc/hyperledger/fabric-ca-server-config/ca.university.uni.com-cert.pem --ca.keyfile /etc/hyperledger/fabric-ca-server-config/37718c2c7c7b909c198212140a4810f8a552cd5cb5933c5430af46e2547a4c23_sk -b admin:adminpw -d'
+    volumes:
+      - ./crypto-config/peerOrganizations/university.uni.com/ca/:/etc/hyperledger/fabric-ca-server-config
+    container_name: ca.university
+
